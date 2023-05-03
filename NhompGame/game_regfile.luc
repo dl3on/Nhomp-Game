@@ -29,7 +29,7 @@ module game_regfile (
   dff row7_output[8](#INIT(0),.clk(clk), .rst(rst));
   dff selected_block_row[8](#INIT(b00000001),.clk(clk), .rst(rst));
   dff temp_selected_block_row[8](#INIT(0),.clk(clk), .rst(rst));
-  dff temp_reg[8](#INIT(0),.clk(clk), .rst(rst));        //stores old row data temporarily
+  dff temp_reg[8](#INIT(0),.clk(clk), .rst(rst));        //unused
   dff new_output[8](#INIT(0),.clk(clk), .rst(rst));      //store here after OR
 
   always {
@@ -54,7 +54,7 @@ module game_regfile (
         b0101 : row5_output.d = data;
         b0110 : row6_output.d = data;
         b0111 : row7_output.d = data;
-        b1000 : temp_reg.d = data;
+        b1000 : temp_reg.d = data;          //unused
         b1001 : new_output.d = data;
         b1010 : player_turn.d = data[0];
         b1011 : row_ctr.d = data[2:0];
@@ -75,7 +75,7 @@ module game_regfile (
         b0101 : out_a = row5_output.q;
         b0110 : out_a = row6_output.q;
         b0111 : out_a = row7_output.q;
-        b1000 : out_a = temp_reg.q;
+        b1000 : out_a = temp_reg.q; 	    //unused
         b1001 : out_a = new_output.q;
         b1010 : out_a = player_turn.q;
         b1011 : out_a = row_ctr.q;
@@ -95,7 +95,7 @@ module game_regfile (
         b0101 : out_b = row5_output.q;
         b0110 : out_b = row6_output.q;
         b0111 : out_b = row7_output.q;
-        b1000 : out_b = temp_reg.q;
+        b1000 : out_b = temp_reg.q;         //unused
         b1001 : out_b = new_output.q;
         b1010 : out_b = player_turn.q;
         b1011 : out_b = row_ctr.q;
