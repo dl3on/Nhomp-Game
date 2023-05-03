@@ -1,0 +1,386 @@
+module automatic_tester_unit (
+    input clk,  // clock
+    input rst,  // reset
+    output out_alu[16],
+    output out_zvn[3],
+    output out_check[3]
+  )
+  {
+  
+  const SLOWCLOCK_SIZE = 27;
+  counter slowClock(#SIZE(SLOWCLOCK_SIZE), .clk(clk), .rst(rst));
+  edge_detector slowClockEdge(#RISE(1), #FALL(0), .clk(clk));
+  
+  
+  dff result[3](#INIT(0),.clk(clk), .rst(rst));
+  dff a_value[16](#INIT(0), .clk(clk), .rst(rst));
+  dff b_value[16](#INIT(0), .clk(clk), .rst(rst));
+  dff alufn_value[6](#INIT(0), .clk(clk), .rst(rst));
+  dff alu_result[16](#INIT(0), .clk(clk), .rst(rst));
+  const MATCH = {16hF0F2, 16hF00F, 16h0000, 16hFC00, 16h0C00, 16h0000, 16h0001, 16h0001,
+    16h0000, 16hC000, 16hC004, 16hC004, 16h0000, 16hBFFC, 16hC004}; // MATCH[0] = 16hC004 NOT 16hFC00
+  const A_VALUES = {16h0F2F, 16hFF00, 16hC000, 16hC000, 16hC000, 16hC000, 16hC000, 16hC000,
+    16hC000, 16hC000, 16hC000, 16hC000, 16hC000, 16hC000, 16hC000};
+  const B_VALUES = {16h0004, 16h0004, 16h0004, 16h0004, 16h0004, 16h0004, 16h0004, 16h0004,
+    16h0004, 16h0004, 16h0004, 16h0004, 16h0004, 16h0004, 16h0004};
+  
+  fsm alu_controller(.clk(clk), .rst(rst)) = {ADD, SUB, AND, OR, XOR, A,
+    CMPEQ, CMPLT, CMPLE, SHL, SHR, SRA, MUL, RTL, RTR};
+  alu_unit alu;
+  
+  always {
+    
+    slowClockEdge.in = slowClock.value[SLOWCLOCK_SIZE-1];
+    
+    case (alu_controller.q) {
+      default:
+        a_value.d = 16h0000;
+        b_value.d = 16h0000;
+        alufn_value.d = b000000;
+      
+      alu_controller.ADD:
+        a_value.d = A_VALUES[0];
+        b_value.d = B_VALUES[0];
+        alufn_value.d = b000000; // ADD
+        alu_result.d = alu.out;
+        
+        if(alu_result.q == MATCH[0]){
+          result.d = b111; // correct
+        }
+        
+        else{
+          result.d = b100; // wrong
+        }
+        
+        if (slowClockEdge.out == b1){
+          if(alu_result.q == MATCH[0]) {
+            alu_controller.d = alu_controller.SUB;
+          }
+          else {
+            alu_controller.d = alu_controller.ADD;
+          }
+        }
+      
+      alu_controller.SUB:
+        a_value.d = A_VALUES[1];
+        b_value.d = B_VALUES[1];
+        alufn_value.d = b000001; // SUB
+        alu_result.d = alu.out;
+        
+        if(alu_result.q == MATCH[1]){
+          result.d = b111; // correct
+        }
+        
+        else{
+          result.d = b100; // wrong
+        }
+        if (slowClockEdge.out == b1){
+          if(alu_result.q == MATCH[1]) {
+            alu_controller.d = alu_controller.AND;
+          }
+          else {
+            alu_controller.d = alu_controller.SUB;
+          }
+        }
+      
+      alu_controller.AND:
+        a_value.d = A_VALUES[2];
+        b_value.d = B_VALUES[2];
+        alufn_value.d = b011000; // AND
+        alu_result.d = alu.out;
+        
+        if(alu_result.q == MATCH[2]){
+          result.d = b111; // correct
+        }
+        
+        else{
+          result.d = b100; // wrong
+        }
+        
+        if (slowClockEdge.out == b1){
+          if(alu_result.q == MATCH[2]) {
+            alu_controller.d = alu_controller.OR;
+          }
+          else {
+            alu_controller.d = alu_controller.AND;
+          }
+        }
+      
+      alu_controller.OR:
+        a_value.d = A_VALUES[3];
+        b_value.d = B_VALUES[3];
+        alufn_value.d = b011110; // OR
+        alu_result.d = alu.out;
+        
+        if(alu_result.q == MATCH[3]){
+          result.d = b111; // correct
+        }
+        
+        else{
+          result.d = b100; // wrong
+        }
+        
+        if (slowClockEdge.out == b1){
+          if(alu_result.q == MATCH[3]) {
+            alu_controller.d = alu_controller.XOR;
+          }
+          else {
+            alu_controller.d = alu_controller.OR;
+          }
+        }
+      
+      alu_controller.XOR:
+        a_value.d = A_VALUES[4];
+        b_value.d = B_VALUES[4];
+        alufn_value.d = b010110; // XOR
+        alu_result.d = alu.out;
+        
+        if(alu_result.q == MATCH[4]){
+          result.d = b111; // correct
+        }
+        
+        else{
+          result.d = b100; // wrong
+        }
+        
+        if (slowClockEdge.out == b1){
+          if(alu_result.q == MATCH[4]) {
+            alu_controller.d = alu_controller.A;
+          }
+          else {
+            alu_controller.d = alu_controller.XOR;
+          }
+        }
+      
+      alu_controller.A:
+        a_value.d = A_VALUES[5];
+        b_value.d = B_VALUES[5];
+        alufn_value.d = b011010; // 'A'
+        alu_result.d = alu.out;
+        
+        if(alu_result.q == MATCH[5]){
+          result.d = b111; // correct
+        }
+        
+        else{
+          result.d = b100; // wrong
+        }
+        
+        if (slowClockEdge.out == b1){
+          if(alu_result.q == MATCH[5]) {
+            alu_controller.d = alu_controller.CMPEQ;
+          }
+          else {
+            alu_controller.d = alu_controller.A;
+          }
+        }
+      
+      alu_controller.CMPEQ:
+        a_value.d = A_VALUES[6];
+        b_value.d = B_VALUES[6];
+        alufn_value.d = b110011; // A == B
+        alu_result.d = alu.out;
+        
+        if(alu_result.q == MATCH[6]){
+          result.d = b111; // correct
+        }
+        
+        else{
+          result.d = b100; // wrong
+        }
+        
+        if (slowClockEdge.out == b1){
+          if(alu_result.q == MATCH[6]) {
+            alu_controller.d = alu_controller.CMPLT;
+          }
+          else {
+            alu_controller.d = alu_controller.CMPEQ;
+          }
+        }
+      
+      alu_controller.CMPLT:
+        a_value.d = A_VALUES[7];
+        b_value.d = B_VALUES[7];
+        alufn_value.d = b110101; // A < B
+        alu_result.d = alu.out;
+        
+        if(alu_result.q == MATCH[7]){
+          result.d = b111; // correct
+        }
+        
+        else{
+          result.d = b100; // wrong
+        }
+        
+        if (slowClockEdge.out == b1){
+          if(alu_result.q == MATCH[7]) {
+            alu_controller.d = alu_controller.CMPLE;
+          }
+          else {
+            alu_controller.d = alu_controller.CMPLT;
+          }
+        }
+      
+      alu_controller.CMPLE:
+        a_value.d = A_VALUES[8];
+        b_value.d = B_VALUES[8];
+        alufn_value.d = b110111; // A <= B
+        alu_result.d = alu.out;
+        
+        if(alu_result.q == MATCH[8]){
+          result.d = b111; // correct
+        }
+        
+        else{
+          result.d = b100; // wrong
+        }
+        
+        if (slowClockEdge.out == b1){
+          if(alu_result.q == MATCH[8]) {
+            alu_controller.d = alu_controller.SHL;
+          }
+          else {
+            alu_controller.d = alu_controller.CMPLE;
+          }
+        }
+      
+      alu_controller.SHL:
+        a_value.d = A_VALUES[9];
+        b_value.d = B_VALUES[9];
+        alufn_value.d = b100000; // SHL
+        alu_result.d = alu.out;
+        
+        if(alu_result.q == MATCH[9]){
+          result.d = b111; // correct
+        }
+        
+        else{
+          result.d = b100; // wrong
+        }
+        
+        if (slowClockEdge.out == b1){
+          if(alu_result.q == MATCH[9]) {
+            alu_controller.d = alu_controller.SHR;
+          }
+          else {
+            alu_controller.d = alu_controller.SHL;
+          }
+        }
+      
+      alu_controller.SHR:
+        a_value.d = A_VALUES[10];
+        b_value.d = B_VALUES[10];
+        alufn_value.d = b100001; // SHR
+        alu_result.d = alu.out;
+        
+        if(alu_result.q == MATCH[10]){
+          result.d = b111; // correct
+        }
+        
+        else{
+          result.d = b100; // wrong
+        }
+        
+        if (slowClockEdge.out == b1){
+          if(alu_result.q == MATCH[10]) {
+            alu_controller.d = alu_controller.SRA;
+          }
+          else {
+            alu_controller.d = alu_controller.SHR;
+          }
+        }
+      
+      alu_controller.SRA:
+        a_value.d = A_VALUES[11];
+        b_value.d = B_VALUES[11];
+        alufn_value.d = b100011; // SRA
+        alu_result.d = alu.out;
+        
+        if(alu_result.q == MATCH[11]){
+          result.d = b111; // correct
+        }
+        
+        else{
+          result.d = b100; // wrong
+        }
+        
+        if (slowClockEdge.out == b1){
+          if(alu_result.q == MATCH[11]) {
+            alu_controller.d = alu_controller.MUL;
+          }
+          else {
+            alu_controller.d = alu_controller.SRA;
+          }
+        }
+      
+      alu_controller.MUL:
+        a_value.d = A_VALUES[12];
+        b_value.d = B_VALUES[12];
+        alufn_value.d = b000010; // MUL
+        alu_result.d = alu.out;
+        
+        if(alu_result.q == MATCH[12]){
+          result.d = b111; // correct
+        }
+        
+        else{
+          result.d = b100; // wrong
+        }
+        
+        if (slowClockEdge.out == b1){
+          if(alu_result.q == MATCH[12]) {
+            alu_controller.d = alu_controller.RTL;
+          }
+          else {
+            alu_controller.d = alu_controller.MUL;
+          }
+        }
+      
+      alu_controller.RTL:
+        a_value.d = A_VALUES[13];
+        b_value.d = B_VALUES[13];
+        alufn_value.d = b101110; // ROTATE_LEFT
+        alu_result.d = alu.out;
+        
+        if(alu_result.q == MATCH[13]){
+          result.d = b111; // correct
+        }
+        
+        else{
+          result.d = b100; // wrong
+        }
+        
+        if (slowClockEdge.out == b1){
+          if(alu_result.q == MATCH[13]) {
+            alu_controller.d = alu_controller.RTR;
+          }
+          else {
+            alu_controller.d = alu_controller.RTL;
+          }
+        }
+      
+      alu_controller.RTR:
+        a_value.d = A_VALUES[14];
+        b_value.d = B_VALUES[14];
+        alufn_value.d = b100111; // ROTATE_RIGHT
+        alu_result.d = alu.out;
+        
+        if(alu_result.q == MATCH[14]){
+          result.d = b111; // correct
+        }
+        
+        else{
+          result.d = b100; // wrong
+        }
+    }
+    
+    alu.a = a_value.q;
+    alu.b = b_value.q;
+    alu.alufn_signal = alufn_value.q;
+    out_alu = alu.out;
+    out_zvn = alu.zvn;
+    out_check = result.q;
+    
+  }
+  
+}

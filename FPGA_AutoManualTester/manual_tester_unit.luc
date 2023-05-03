@@ -1,0 +1,73 @@
+module manual_tester_unit (
+    input clk,  // clock
+    input rst,  // reset
+    input buttons[3],
+    input a[16],
+    input b[16],
+    input alufn_signal[6],
+    output out_result[16],
+    output zvn[3]
+  )
+  
+  {
+  
+  dff a_output[16](#INIT(0), .clk(clk), .rst(rst));
+  dff b_output[16](#INIT(0),.clk(clk), .rst(rst));
+  dff signal_output[6](#INIT(0),.clk(clk), .rst(rst));
+  alu_unit alu;
+  
+  fsm input_controller(.clk(clk), .rst(rst)) = {
+    A, B, ALUFN_SIGNAL
+  };
+  
+  
+  always{
+    
+    case (input_controller.q){
+      
+      default:
+        a_output.d = 16h0000;
+        b_output.d = 16h0000;
+        signal_output.d = b000000;
+      
+      input_controller.A:
+        if (buttons[0]){
+          // top button pressed: saves value of A and display A on leds
+          a_output.d = a;
+          input_controller.d = input_controller.B;
+        }
+        
+        else{
+          input_controller.d = input_controller.A;
+        }
+      
+      input_controller.B:
+        if (buttons[1]){
+          // right button pressed: saves value of B and display B on leds
+          b_output.d = b;
+          input_controller.d = input_controller.ALUFN_SIGNAL;
+        }
+        
+        else{
+          input_controller.d = input_controller.B;
+        }
+      
+      input_controller.ALUFN_SIGNAL:
+        if (buttons[2]){
+          // bottom button pressed: saves alufn signal
+          signal_output.d = alufn_signal;
+          input_controller.d = input_controller.A;
+        }
+        
+        else{
+          input_controller.d = input_controller.ALUFN_SIGNAL;
+        }
+    }
+    
+    alu.a = a_output.q;
+    alu.b = b_output.q;
+    alu.alufn_signal = signal_output.q;
+    
+    out_result = alu.out;
+    zvn = alu.zvn;
+}

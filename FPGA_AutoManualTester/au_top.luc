@@ -1,0 +1,74 @@
+module au_top (
+    input clk,              // 100MHz clock
+    input rst_n,            // reset button (active low)
+    output led [8],         // 8 user controllable LEDs
+    input usb_rx,           // USB->Serial input
+    output usb_tx,          // USB->Serial output
+    output io_led [3][8],   // LEDs on IO Shield
+    output io_seg [8],      // 7-segment LEDs on IO Shield
+    output io_sel [4],      // Digit select on IO Shield
+    input io_button [5],    // 5 buttons on IO Shield
+    input io_dip [3][8]     // DIP switches on IO Shield
+  ) {
+  
+  sig rst;                   // reset signal
+  
+  .clk(clk) {
+    // The reset conditioner is used to synchronize the reset signal to the FPGA
+    // clock. This ensures the entire FPGA comes out of reset at the same time.
+    reset_conditioner reset_cond;
+  }
+  
+  ////manual tester unit////
+  manual_tester_unit manualtester(.clk(clk), .rst(rst));
+  button_conditioner buttoncond[3](.clk(clk));
+  edge_detector buttondetector[3](#RISE(1), #FALL(0),.clk(clk));
+  
+  ////automatic tester unit////
+  //automatic_tester_unit autotester(.clk(clk), .rst(rst));
+  
+  always {
+    reset_cond.in = ~rst_n;   // input raw inverted reset signal
+    rst = reset_cond.out;     // conditioned reset
+    
+    led = c{3b0, io_button};  // connect buttons to LEDs
+    
+    usb_tx = usb_rx;          // loop serial port
+    
+    io_seg = 8hff;          // turn segments off
+    io_sel = 4hf;           // select no digits
+    io_led = 3x{{8h00}};    // turn LEDs off
+    
+    io_led = io_dip;   // connect the DIP switches to the LEDs
+    
+    ////manual_tester_unit////
+    buttoncond.in = io_button[2:0];
+    buttondetector.in = buttoncond.out;
+    manualtester.buttons = buttondetector.out;
+    
+    manualtester.a[7:0] = io_dip[0];
+    manualtester.a[15:8] = io_dip[1];
+    
+    manualtester.b[7:0] = io_dip[0];
+    manualtester.b[15:8] = io_dip[1];
+    
+    //error case//
+    //manualtester.a[7:1] = io_dip[0];
+    //manualtester.a[15:8] = io_dip[1];
+    //manualtester.a[0] = 1;
+    
+    manualtester.alufn_signal = io_dip[2][5:0];
+    
+    io_led[0] = manualtester.out_result[7:0];
+    io_led[1] = manualtester.out_result[15:8];
+    io_led[2][2:0] = manualtester.zvn;
+    io_led[2][7:5] = io_button[2:0];
+    
+    ////automatic_tester_unit////
+    //io_led[0] = autotester.out_alu[7:0];
+    //io_led[1] = autotester.out_alu[15:8];
+    
+    //io_led[2][2:0] = autotester.out_zvn;
+    //io_led[2][7:5] = autotester.out_check;
+  }
+}
