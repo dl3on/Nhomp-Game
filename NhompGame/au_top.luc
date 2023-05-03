@@ -1,0 +1,129 @@
+module au_top (
+    input clk,              // 100MHz clock
+    input rst_n,            // reset button (active low)
+    output led [8],         // 8 user controllable LEDs
+    input usb_rx,           // USB->Serial input
+    output outled,           // to LED strip, Br pin C49, connect LED Strip to 5V for power
+    output usb_tx,          // USB->Serial output
+    output io_led [3][8],   // LEDs on IO Shield
+    output io_seg [8],      // 7-segment LEDs on IO Shield
+    output io_sel [4],      // Digit select on IO Shield
+    input io_button [5],    // 5 buttons on IO Shield
+    input io_dip [3][8],     // DIP switches on IO Shield
+    input upbutton,
+    input downbutton,
+    input leftbutton,
+    input rightbutton,
+    input enterbutton,
+    output player
+  ) {
+ 
+  sig rst;                  // reset signal
+  
+  const COLOR = {24hFF0000, 24h000000};
+  const MATRIX_MAP = {6d56,6d57,6d58,6d59,6d60,6d61,6d62,6d63,
+    6d55,6d54,6d53,6d52,6d51,6d50,6d49,6d48,
+    6d40,6d41,6d42,6d43,6d44,6d45,6d46,6d47,
+    6d39,6d38,6d37,6d36,6d35,6d34,6d33,6d32,
+    6d24,6d25,6d26,6d27,6d28,6d29,6d30,6d31,
+    6d23,6d22,6d21,6d20,6d19,6d18,6d17,6d16,
+    6d8,6d9,6d10,6d11,6d12,6d13,6d14,6d15,
+    6d7,6d6,6d5,6d4,6d3,6d2,6d1,6d0};
+  
+  //buttons_select gameMachine(.clk(clk), .rst(rst));
+  game_CU gameCU(.clk(clk), .rst(rst));
+  alu_unit alu;
+  game_regfile regfile(.clk(clk), .rst(rst));
+  ws2812b_writer led_strip(#PIXEL_COUNT(64), .clk(clk), .rst(rst));
+  
+  .clk(clk) {
+    // The reset conditioner is used to synchronize the reset signal to the FPGA
+    // clock. This ensures the entire FPGA comes out of reset at the same time.
+    reset_conditioner reset_cond;
+  }
+  
+  button_conditioner buttoncond_up(.clk(clk));
+  button_conditioner buttoncond_down(.clk(clk));
+  button_conditioner buttoncond_left(.clk(clk));
+  button_conditioner buttoncond_right(.clk(clk));
+  button_conditioner buttoncond_enter(.clk(clk));
+  
+  edge_detector edge_dt_btn_up(#RISE(1), #FALL(0),.clk(clk));
+  edge_detector edge_dt_btn_down(#RISE(1), #FALL(0),.clk(clk));
+  edge_detector edge_dt_btn_left(#RISE(1), #FALL(0),.clk(clk));
+  edge_detector edge_dt_btn_right(#RISE(1), #FALL(0),.clk(clk));
+  edge_detector edge_dt_btn_enter(#RISE(1), #FALL(0),.clk(clk));
+  
+  always {
+    reset_cond.in = ~rst_n; // input raw inverted reset signal
+    rst = reset_cond.out;   // conditioned reset
+    
+    usb_tx = usb_rx;        // loop serial port
+    
+    led = 8h00;             // turn LEDs off
+    
+    io_led = 3x{{8h00}};    // turn LEDs off
+    io_seg = 8hff;          // turn segments off
+    io_sel = 4hf;           // select no digits
+    
+    buttoncond_up.in = upbutton;
+    buttoncond_down.in = downbutton;
+    buttoncond_left.in = leftbutton;
+    buttoncond_right.in = rightbutton;
+    buttoncond_enter.in = enterbutton;
+    
+    edge_dt_btn_up.in = buttoncond_up.out;
+    edge_dt_btn_down.in = buttoncond_down.out;
+    edge_dt_btn_left.in = buttoncond_left.out;
+    edge_dt_btn_right.in = buttoncond_right.out;
+    edge_dt_btn_enter.in = buttoncond_enter.out;
+    
+    gameCU.buttonup = edge_dt_btn_up.out;
+    gameCU.buttondown = edge_dt_btn_down.out;
+    gameCU.buttonleft = edge_dt_btn_left.out;
+    gameCU.buttonright = edge_dt_btn_right.out;
+    gameCU.enter_button = edge_dt_btn_enter.out;
+    
+    regfile.we = gameCU.we_regfile;
+    regfile.read_address_a = gameCU.regfile_read_address_a;
+    regfile.read_address_b = gameCU.regfile_read_address_b;
+    regfile.write_address = gameCU.regfile_write_address;
+    
+    case(gameCU.asel){
+      b00: alu.a = regfile.out_a;
+      b01: alu.a = 0;
+      b10: alu.a = b11111111; // row check poison
+      b11: alu.a = b00000001;
+      default: alu.a = regfile.out_a;
+    }
+    
+    case(gameCU.bsel){
+      b00: alu.b = regfile.out_b;
+      b01: alu.b = 1;
+      b10: alu.b = b00000001;
+      b11: alu.b = gameCU.rom_output;
+      default: alu.b = regfile.out_b;
+    }
+    
+    alu.alufn_signal = gameCU.alufn;
+
+    gameCU.player_turn = regfile.playerturn;
+    gameCU.row_counter = regfile.row_count;
+    gameCU.col_counter = regfile.col_count;
+    gameCU.outputcheck = alu.out;
+    
+    regfile.data = gameCU.outputsend;
+    
+    io_led[0][0] = regfile.playerturn;
+    
+    io_led[1] = gameCU.win_signal_P1;
+    io_led[2] = gameCU.win_signal_P2;
+    
+    player = regfile.playerturn;
+    
+    led_strip.color = COLOR[regfile.out_data[MATRIX_MAP[led_strip.pixel]]];
+    led_strip.update = 1;
+    outled = led_strip.led;
+    
+  }
+}

@@ -1,0 +1,1098 @@
+module game_CU (
+    input clk,  // clock
+    input rst,  // reset
+    
+    input buttonleft,
+    input buttonright,
+    input buttondown,
+    input buttonup,
+    input enter_button,
+    input outputcheck[8],
+    input player_turn,
+    input row_counter[3],
+    input col_counter[3],
+    
+    output alufn[6],
+    output asel[3],
+    output bsel[3],
+    output alu_out_sel[2],
+    output regfile_write_address[4],
+    output regfile_read_address_a[4],
+    output regfile_read_address_b[4],
+    output we_regfile,
+    output outputsend[8],
+    output rom_output[8],
+    output win_signal_P1[8],
+    output win_signal_P2[8]
+  ) {
+  
+  const EATEN_ROW = {b10000000, b11000000, b11100000, b11110000,
+    b11111000, b11111100, b11111110, b11111111};
+  
+  fsm game_fsm(.clk(clk), .rst(rst)) = {START_RESET,
+    PLAYER1,
+    PLAYER2,
+    INCREMENT_ROW_COUNTER,
+    DECREMENT_ROW_COUNTER,
+    INCREMENT_COL_COUNTER,
+    DECREMENT_COL_COUNTER,
+    LEFT_BUTTON,
+    RIGHT_BUTTON,
+    DOWN_BUTTON,
+    UP_BUTTON,
+    CHECK_EATEN_UP,
+    CHECK_EATEN_UP_COMPARE,
+    SHIFT_UP,
+    SHIFT_UP_UPDATE,
+    UPDATE_ROW_0_UP,
+    SHIFT_DOWN,
+    SHIFT_DOWN_UPDATE,
+    CHECK_EATEN_RIGHT,
+    SHIFT_RIGHT,
+    CHECK_RIGHT_COMPARE,
+    SHIFT_RIGHT_UPDATE,
+    UPDATE_ROW_0_RIGHT,
+    SHIFT_RIGHT_UPDATE2,
+    SHIFT_LEFT,
+    SHIFT_LEFT1,
+    SHIFT_LEFT_UPDATE,
+    SHIFT_LEFT_UPDATE2,
+    EAT_CELLS,
+    UPDATE_ROW_1_EATEN_FOR_COL0,
+    UPDATE_ROW_1_EATEN,
+    UPDATE_ROW_1_EATEN_UPDATE,
+    UPDATE_ROW_2_EATEN,
+    UPDATE_ROW_3_EATEN,
+    UPDATE_ROW_4_EATEN,
+    UPDATE_ROW_5_EATEN,
+    UPDATE_ROW_6_EATEN,
+    UPDATE_ROW_7_EATEN,
+    CHECK_POISON_ROW_0,
+    CHECK_POISON_ROW_1,
+    CHANGE_PLAYER_TURN,
+    INITIALIZE_FOR_PLAYER,
+    RESET_ROW_COUNTER,
+    RESET_COL_COUNTER,
+    P1WINS,
+    P2WINS
+  };
+  
+  always {
+    
+    alufn = b000000;
+    asel = b00;
+    bsel = b00;
+    alu_out_sel = b00;
+    we_regfile = 0;
+    regfile_read_address_a = b0000;
+    regfile_read_address_b = b0000;
+    regfile_write_address = b0000;
+    outputsend = outputcheck;
+    win_signal_P1 = 0;
+    win_signal_P2 = 0;
+    
+    if (rst){
+      game_fsm.d = game_fsm.START_RESET;
+    }
+    
+    else{
+      case (game_fsm.q){
+        
+        game_fsm.START_RESET:
+          game_fsm.d = game_fsm.PLAYER1;
+        
+        game_fsm.PLAYER1:
+          if (buttonleft) {
+            game_fsm.d = game_fsm.LEFT_BUTTON;
+          }
+          else if (buttonright) {
+            game_fsm.d = game_fsm.RIGHT_BUTTON;
+          }
+          else if (buttonup) {
+            game_fsm.d = game_fsm.UP_BUTTON;
+          }
+          else if (buttondown) {
+            game_fsm.d = game_fsm.DOWN_BUTTON;
+          }
+          else if (enter_button) {
+            game_fsm.d = game_fsm.EAT_CELLS;
+          }
+          else {
+            game_fsm.d = game_fsm.PLAYER1;
+          }
+        
+        game_fsm.PLAYER2:
+          if (buttonleft) {
+            game_fsm.d = game_fsm.LEFT_BUTTON;
+          }
+          else if (buttonright) {
+            game_fsm.d = game_fsm.RIGHT_BUTTON;
+          }
+          else if (buttonup) {
+            game_fsm.d = game_fsm.UP_BUTTON;
+          }
+          else if (buttondown) {
+            game_fsm.d = game_fsm.DOWN_BUTTON;
+          }
+          else if (enter_button) {
+            game_fsm.d = game_fsm.EAT_CELLS;
+          }
+          else {
+            game_fsm.d = game_fsm.PLAYER2;
+          }
+        
+        game_fsm.INCREMENT_ROW_COUNTER:
+          alufn = b000000;
+          bsel = b01;
+          we_regfile = 1;
+          regfile_read_address_a = b1011;
+          regfile_write_address = b1011;
+          if (player_turn == 0) {
+            game_fsm.d = game_fsm.PLAYER1;
+          }
+          else {
+            game_fsm.d = game_fsm.PLAYER2;
+          }
+        
+        game_fsm.DECREMENT_ROW_COUNTER:
+          alufn = b000001;
+          bsel = b01;
+          we_regfile = 1;
+          regfile_read_address_a = b1011;
+          regfile_write_address = b1011;
+          if (player_turn == 0) {
+            game_fsm.d = game_fsm.PLAYER1;
+          }
+          else {
+            game_fsm.d = game_fsm.PLAYER2;
+          }
+        
+        game_fsm.INCREMENT_COL_COUNTER:
+          alufn = b000000;
+          bsel = b01;
+          we_regfile = 1;
+          regfile_read_address_a = b1100;
+          regfile_write_address = b1100;
+          if (player_turn == 0) {
+            game_fsm.d = game_fsm.PLAYER1;
+          }
+          else {
+            game_fsm.d = game_fsm.PLAYER2;
+          }
+        
+        game_fsm.DECREMENT_COL_COUNTER:
+          alufn = b000001;
+          bsel = b01;
+          we_regfile = 1;
+          regfile_read_address_a = b1100;
+          regfile_write_address = b1100;
+          if (player_turn == 0) {
+            game_fsm.d = game_fsm.PLAYER1;
+          }
+          else {
+            game_fsm.d = game_fsm.PLAYER2;
+          }
+        
+        game_fsm.LEFT_BUTTON:
+          if (col_counter != 0) {
+            game_fsm.d = game_fsm.SHIFT_LEFT;
+          }
+          else {
+            if (player_turn == 0) {
+              game_fsm.d = game_fsm.PLAYER1;
+            }
+            else {
+              game_fsm.d = game_fsm.PLAYER2;
+            }
+          }
+        
+        game_fsm.RIGHT_BUTTON:
+          if (col_counter != 7) {
+            game_fsm.d = game_fsm.CHECK_EATEN_RIGHT;
+          }
+          else {
+            if (player_turn == 0) {
+              game_fsm.d = game_fsm.PLAYER1;
+            }
+            else {
+              game_fsm.d = game_fsm.PLAYER2;
+            }
+          }
+        
+        game_fsm.DOWN_BUTTON:
+          
+          if (row_counter != 0) {
+            game_fsm.d = game_fsm.SHIFT_DOWN;
+          }
+          else {
+            if (player_turn == 0) {
+              game_fsm.d = game_fsm.PLAYER1;
+            }
+            else {
+              game_fsm.d = game_fsm.PLAYER2;
+            }
+          }
+        
+        game_fsm.UP_BUTTON:
+          if (row_counter != 7) {
+            game_fsm.d = game_fsm.CHECK_EATEN_UP;
+          }
+          else {
+            if (player_turn == 0) {
+              game_fsm.d = game_fsm.PLAYER1;
+            }
+            else {
+              game_fsm.d = game_fsm.PLAYER2;
+            }
+          }
+        
+        game_fsm.CHECK_EATEN_UP:
+          alufn = b011110;              //OR
+          we_regfile = 1;
+          regfile_read_address_a = b1111;      //selected_block_row register
+          if (row_counter == 0) {
+            regfile_read_address_b = b0001;
+          }
+          else if (row_counter == 1) {
+            regfile_read_address_b = b0010;
+          }
+          else if (row_counter == 2) {
+            regfile_read_address_b = b0011;
+          }
+          else if (row_counter == 3) {
+            regfile_read_address_b = b0100;
+          }
+          else if (row_counter == 4) {
+            regfile_read_address_b = b0101;
+          }
+          else if (row_counter == 5) {
+            regfile_read_address_b = b0110;
+          }
+          else {
+            regfile_read_address_b = b0111;
+          }
+          regfile_write_address = b1001;            //new_output reg
+          game_fsm.d = game_fsm.CHECK_EATEN_UP_COMPARE;
+        
+        game_fsm.CHECK_EATEN_UP_COMPARE:
+          alufn = b110011;
+          regfile_read_address_a = b1001;           //new_output reg
+          if (row_counter == 0) {
+            regfile_read_address_b = b0001;
+          }
+          else if (row_counter == 1) {
+            regfile_read_address_b = b0010;
+          }
+          else if (row_counter == 2) {
+            regfile_read_address_b = b0011;
+          }
+          else if (row_counter == 3) {
+            regfile_read_address_b = b0100;
+          }
+          else if (row_counter == 4) {
+            regfile_read_address_b = b0101;
+          }
+          else if (row_counter == 5) {
+            regfile_read_address_b = b0110;
+          }
+          else {
+            regfile_read_address_b = b0111;
+          }
+          alu_out_sel = b00;
+          if (outputcheck != 1) {
+            game_fsm.d = game_fsm.SHIFT_UP;
+          }
+          else {
+            if (player_turn == 0) {
+              game_fsm.d = game_fsm.PLAYER1;
+            }
+            else {
+              game_fsm.d = game_fsm.PLAYER2;
+            }
+          }
+        
+        game_fsm.SHIFT_UP:
+          alufn = b011010;
+          regfile_read_address_a = b1001;
+          we_regfile = 1;
+          if (row_counter == 0) {
+            regfile_write_address = b0001;
+          }
+          else if (row_counter == 1) {
+            regfile_write_address = b0010;
+          }
+          else if (row_counter == 2) {
+            regfile_write_address = b0011;
+          }
+          else if (row_counter == 3) {
+            regfile_write_address = b0100;
+          }
+          else if (row_counter == 4) {
+            regfile_write_address = b0101;
+          }
+          else if (row_counter == 5) {
+            regfile_write_address = b0110 ;
+          }
+          else {
+            regfile_write_address = b0111;
+          }
+          game_fsm.d = game_fsm.SHIFT_UP_UPDATE;
+        
+        game_fsm.SHIFT_UP_UPDATE:
+          alufn = b000001;          //SUB
+          we_regfile = 1;
+          regfile_read_address_b = b1111;
+          if (row_counter == 0) {
+            regfile_read_address_a = b0000;
+            regfile_write_address = b0000;      //Restore previous row to original state (before OR)
+          }
+          else if (row_counter == 1) {
+            regfile_read_address_a = b0001;
+            regfile_write_address = b0001;
+          }
+          else if (row_counter == 2) {
+            regfile_read_address_a = b0010;
+            regfile_write_address = b0010;
+          }
+          else if (row_counter == 3) {
+            regfile_read_address_a = b0011;
+            regfile_write_address = b0011;
+          }
+          else if (row_counter == 4) {
+            regfile_read_address_a = b0100;
+            regfile_write_address = b0100;
+          }
+          else if (row_counter == 5) {
+            regfile_read_address_a = b0101;
+            regfile_write_address = b0101;
+          }
+          else {
+            regfile_read_address_a = b0110;
+            regfile_write_address = b0110;
+          }
+          game_fsm.d = game_fsm.UPDATE_ROW_0_UP;
+        
+        game_fsm.UPDATE_ROW_0_UP:
+          if (col_counter == 0) {
+            alufn = b011110; // OR
+            we_regfile = 1;
+            bsel = b10;
+            regfile_read_address_a = b0000;
+            regfile_write_address = b0000;
+          }
+          game_fsm.d = game_fsm.INCREMENT_ROW_COUNTER;
+        
+        game_fsm.SHIFT_DOWN:
+          alufn = b011110;              //OR
+          we_regfile = 1;
+          regfile_read_address_a = b1111;      //selected_block_row register
+          if (row_counter == 1) {
+            regfile_read_address_b = b0000;
+            regfile_write_address = b0000;
+          }
+          else if (row_counter == 2) {
+            regfile_read_address_b = b0001;
+            regfile_write_address = b0001;
+          }
+          else if (row_counter == 3) {
+            regfile_read_address_b = b0010;
+            regfile_write_address = b0010;
+          }
+          else if (row_counter == 4) {
+            regfile_read_address_b = b0011;
+            regfile_write_address = b0011;
+          }
+          else if (row_counter == 5) {
+            regfile_read_address_b = b0100;
+            regfile_write_address = b0100;
+          }
+          else if (row_counter == 6) {
+            regfile_read_address_b = b0101;
+            regfile_write_address = b0101;
+          }
+          else {
+            regfile_read_address_b = b0110;
+            regfile_write_address = b0110;
+          }
+          game_fsm.d = game_fsm.SHIFT_DOWN_UPDATE;
+        
+        game_fsm.SHIFT_DOWN_UPDATE:
+          alufn = b000001;          //SUB
+          we_regfile = 1;
+          regfile_read_address_b = b1111;
+          if (row_counter == 1) {
+            regfile_read_address_a = b0001;
+            regfile_write_address = b0001;      //Restore previous row to original state (before OR)
+          }
+          else if (row_counter == 2) {
+            regfile_read_address_a = b0010;
+            regfile_write_address = b0010;
+          }
+          else if (row_counter == 3) {
+            regfile_read_address_a = b0011;
+            regfile_write_address = b0011;
+          }
+          else if (row_counter == 4) {
+            regfile_read_address_a = b0100;
+            regfile_write_address = b0100;
+          }
+          else if (row_counter == 5) {
+            regfile_read_address_a = b0101;
+            regfile_write_address = b0101;
+          }
+          else if (row_counter == 6) {
+            regfile_read_address_a = b0110;
+            regfile_write_address = b0110;
+          }
+          else {
+            regfile_read_address_a = b0111;
+            regfile_write_address = b0111;
+          }
+          alu_out_sel = b00;
+          game_fsm.d = game_fsm.DECREMENT_ROW_COUNTER;
+        
+        game_fsm.CHECK_EATEN_RIGHT:
+          alufn = b100000;              //SHL first then check in next state
+          bsel = b01;
+          we_regfile = 1;
+          regfile_read_address_a = b1111;     //selected_block_row register
+          regfile_write_address = b1110;      //temp_selected_block_row register
+          game_fsm.d = game_fsm.SHIFT_RIGHT;
+        
+        game_fsm.SHIFT_RIGHT:
+          alufn = b011110;              //OR, to obtain new row data
+          we_regfile = 1;
+          regfile_read_address_a = b1110;      //temp_selected_block_row register
+          if (row_counter == 0) {
+            regfile_read_address_b = b0000;
+          }
+          else if (row_counter == 1) {
+            regfile_read_address_b = b0001;
+          }
+          else if (row_counter == 2) {
+            regfile_read_address_b = b0010;
+          }
+          else if (row_counter == 3) {
+            regfile_read_address_b = b0011;
+          }
+          else if (row_counter == 4) {
+            regfile_read_address_b = b0100;
+          }
+          else if (row_counter == 5) {
+            regfile_read_address_b = b0101;
+          }
+          else if (row_counter == 6) {
+            regfile_read_address_b = b0110;
+          }
+          else {
+            regfile_read_address_b = b0111;
+          }
+          regfile_write_address = b1001;
+          game_fsm.d = game_fsm.CHECK_RIGHT_COMPARE;
+        
+        
+        game_fsm.CHECK_RIGHT_COMPARE:
+          alufn = b110011;              //CMPEQ
+          alu_out_sel = b00;
+          regfile_read_address_a = b1001;    //from new_output
+          if (row_counter == 0) {
+            regfile_read_address_b = b0000;
+          }
+          else if (row_counter == 1) {
+            regfile_read_address_b = b0001;
+          }
+          else if (row_counter == 2) {
+            regfile_read_address_b = b0010;
+          }
+          else if (row_counter == 3) {
+            regfile_read_address_b = b0011;
+          }
+          else if (row_counter == 4) {
+            regfile_read_address_b = b0100;
+          }
+          else if (row_counter == 5) {
+            regfile_read_address_b = b0101;
+          }
+          else if (row_counter == 6) {
+            regfile_read_address_b = b0110;
+          }
+          else {
+            regfile_read_address_b = b0111;
+          }
+          if (outputcheck != 1) {            //compare old row data and new row data after OR (to check if it remains the same = block above is eaten block)
+            game_fsm.d = game_fsm.SHIFT_RIGHT_UPDATE;
+          }
+          else {
+            if (player_turn == 0) {
+              game_fsm.d = game_fsm.PLAYER1;
+            }
+            else {
+              game_fsm.d = game_fsm.PLAYER2;
+            }
+          }
+        
+        game_fsm.SHIFT_RIGHT_UPDATE:
+          alufn = b000001;              //'SUB'
+          we_regfile = 1;
+          regfile_read_address_a = b1001;    //from new_output
+          regfile_read_address_b = b1111;    //selected_block
+          if (row_counter == 0) {
+            regfile_write_address = b0000;
+            game_fsm.d = game_fsm.UPDATE_ROW_0_RIGHT;
+          }
+          else if (row_counter == 1) {
+            regfile_write_address = b0001;
+            game_fsm.d = game_fsm.SHIFT_RIGHT_UPDATE2;
+          }
+          else if (row_counter == 2) {
+            regfile_write_address = b0010;
+            game_fsm.d = game_fsm.SHIFT_RIGHT_UPDATE2;
+          }
+          else if (row_counter == 3) {
+            regfile_write_address = b0011;
+            game_fsm.d = game_fsm.SHIFT_RIGHT_UPDATE2;
+          }
+          else if (row_counter == 4) {
+            regfile_write_address = b0100;
+            game_fsm.d = game_fsm.SHIFT_RIGHT_UPDATE2;
+          }
+          else if (row_counter == 5) {
+            regfile_write_address = b0101;
+            game_fsm.d = game_fsm.SHIFT_RIGHT_UPDATE2;
+          }
+          else if (row_counter == 6) {
+            regfile_write_address = b0110;
+            game_fsm.d = game_fsm.SHIFT_RIGHT_UPDATE2;
+          }
+          else {
+            regfile_write_address = b0111;
+            game_fsm.d = game_fsm.SHIFT_RIGHT_UPDATE2;
+          }
+        
+        game_fsm.UPDATE_ROW_0_RIGHT:
+          alufn = b011110; // OR
+          we_regfile = 1;
+          bsel = b10;
+          regfile_read_address_a = b0000;
+          regfile_write_address = b0000;
+          game_fsm.d = game_fsm.SHIFT_RIGHT_UPDATE2;
+        
+        game_fsm.SHIFT_RIGHT_UPDATE2:
+          alufn = b011010;              //'A'
+          we_regfile = 1;
+          regfile_read_address_a = b1110;
+          regfile_write_address = b1111;      //finally, update selected_block_row register using content of temp_selected reg
+          game_fsm.d = game_fsm.INCREMENT_COL_COUNTER;
+        
+        game_fsm.SHIFT_LEFT:
+          alufn = b100001;              //SHR first then check in next state
+          bsel = b01;
+          we_regfile = 1;
+          regfile_read_address_a = b1111;
+          regfile_write_address = b1110;      //temp_selected_block_row reg
+          game_fsm.d = game_fsm.SHIFT_LEFT1;
+        
+        game_fsm.SHIFT_LEFT1:
+          alufn = b011110;              //OR, to obtain new row data
+          we_regfile = 1;
+          regfile_read_address_a = b1110;      //selected_block_row register
+          if (row_counter == 0) {
+            regfile_read_address_b = b0000;
+          }
+          else if (row_counter == 1) {
+            regfile_read_address_b = b0001;
+          }
+          else if (row_counter == 2) {
+            regfile_read_address_b = b0010;
+          }
+          else if (row_counter == 3) {
+            regfile_read_address_b = b0011;
+          }
+          else if (row_counter == 4) {
+            regfile_read_address_b = b0100;
+          }
+          else if (row_counter == 5) {
+            regfile_read_address_b = b0101;
+          }
+          else if (row_counter == 6) {
+            regfile_read_address_b = b0110;
+          }
+          else {
+            regfile_read_address_b = b0111;
+          }
+          regfile_write_address = b1001;
+          game_fsm.d = game_fsm.SHIFT_LEFT_UPDATE;
+        
+        game_fsm.SHIFT_LEFT_UPDATE:
+          alufn = b000001;              //'SUB'
+          we_regfile = 1;
+          regfile_read_address_a = b1001;    //from new_output
+          regfile_read_address_b = b1111;    //selected_block
+          if (row_counter == 0) {
+            regfile_write_address = b0000;
+          }
+          else if (row_counter == 1) {
+            regfile_write_address = b0001;
+          }
+          else if (row_counter == 2) {
+            regfile_write_address = b0010;
+          }
+          else if (row_counter == 3) {
+            regfile_write_address = b0011;
+          }
+          else if (row_counter == 4) {
+            regfile_write_address = b0100;
+          }
+          else if (row_counter == 5) {
+            regfile_write_address = b0101;
+          }
+          else if (row_counter == 6) {
+            regfile_write_address = b0110;
+          }
+          else {
+            regfile_write_address = b0111;
+          }
+          game_fsm.d = game_fsm.SHIFT_LEFT_UPDATE2;
+        
+        game_fsm.SHIFT_LEFT_UPDATE2:
+          alufn = b011010;              //'A'
+          bsel = b01;
+          we_regfile = 1;
+          regfile_read_address_a = b1110;
+          regfile_write_address = b1111;      //finally, update selected_block_row register using content of temp_selected reg
+          game_fsm.d = game_fsm.DECREMENT_COL_COUNTER;
+        
+        game_fsm.EAT_CELLS:
+          if (row_counter == 0){
+            alufn = b011110;
+            we_regfile = 1;
+            bsel = b11;
+            regfile_read_address_a = b0000;
+            regfile_write_address = b0000;
+            if (col_counter == 0){
+              rom_output = EATEN_ROW[0];
+              game_fsm.d = game_fsm.UPDATE_ROW_1_EATEN_FOR_COL0;
+            }
+            else if (col_counter == 1){
+              rom_output = EATEN_ROW[1];
+              game_fsm.d = game_fsm.UPDATE_ROW_1_EATEN;
+            }
+            else if (col_counter == 2){
+              rom_output = EATEN_ROW[2];
+              game_fsm.d = game_fsm.UPDATE_ROW_1_EATEN;
+            }
+            else if (col_counter == 3){
+              rom_output = EATEN_ROW[3];
+              game_fsm.d = game_fsm.UPDATE_ROW_1_EATEN;
+            }
+            else if (col_counter == 4){
+              rom_output = EATEN_ROW[4];
+              game_fsm.d = game_fsm.UPDATE_ROW_1_EATEN;
+            }
+            else if (col_counter == 5){
+              rom_output = EATEN_ROW[5];
+              game_fsm.d = game_fsm.UPDATE_ROW_1_EATEN;
+            }
+            else if (col_counter == 6){
+              rom_output = EATEN_ROW[6];
+              game_fsm.d = game_fsm.UPDATE_ROW_1_EATEN;
+            }
+            else{
+              rom_output = EATEN_ROW[7];
+              game_fsm.d = game_fsm.UPDATE_ROW_1_EATEN;
+            }
+          }
+          // ROW 1
+          else if (row_counter == 1){
+            alufn = b011110;
+            we_regfile = 1;
+            bsel = b11;
+            regfile_read_address_a = b0001;
+            regfile_write_address = b0001;
+            if (col_counter == 0){
+              rom_output = EATEN_ROW[0];
+            }
+            else if (col_counter == 1){
+              rom_output = EATEN_ROW[1];
+            }
+            else if (col_counter == 2){
+              rom_output = EATEN_ROW[2];
+            }
+            else if (col_counter == 3){
+              rom_output = EATEN_ROW[3];
+            }
+            else if (col_counter == 4){
+              rom_output = EATEN_ROW[4];
+            }
+            else if (col_counter == 5){
+              rom_output = EATEN_ROW[5];
+            }
+            else if (col_counter == 6){
+              rom_output = EATEN_ROW[6];
+            }
+            else{
+              rom_output = EATEN_ROW[7];
+            }
+            game_fsm.d = game_fsm.UPDATE_ROW_2_EATEN;
+          }
+          // ROW 2
+          else if (row_counter == 2){
+            alufn = b011110;
+            we_regfile = 1;
+            bsel = b11;
+            regfile_read_address_a = b0010;
+            regfile_write_address = b0010;
+            if (col_counter == 0){
+              rom_output = EATEN_ROW[0];
+            }
+            else if (col_counter == 1){
+              rom_output = EATEN_ROW[1];
+            }
+            else if (col_counter == 2){
+              rom_output = EATEN_ROW[2];
+            }
+            else if (col_counter == 3){
+              rom_output = EATEN_ROW[3];
+            }
+            else if (col_counter == 4){
+              rom_output = EATEN_ROW[4];
+            }
+            else if (col_counter == 5){
+              rom_output = EATEN_ROW[5];
+            }
+            else if (col_counter == 6){
+              rom_output = EATEN_ROW[6];
+            }
+            else{
+              rom_output = EATEN_ROW[7];
+            }
+            game_fsm.d = game_fsm.UPDATE_ROW_3_EATEN;
+          }
+          // ROW 3
+          else if (row_counter == 3){
+            alufn = b011110;
+            we_regfile = 1;
+            bsel = b11;
+            regfile_read_address_a = b0011;
+            regfile_write_address = b0011;
+            if (col_counter == 0){
+              rom_output = EATEN_ROW[0];
+            }
+            else if (col_counter == 1){
+              rom_output = EATEN_ROW[1];
+            }
+            else if (col_counter == 2){
+              rom_output = EATEN_ROW[2];
+            }
+            else if (col_counter == 3){
+              rom_output = EATEN_ROW[3];
+            }
+            else if (col_counter == 4){
+              rom_output = EATEN_ROW[4];
+            }
+            else if (col_counter == 5){
+              rom_output = EATEN_ROW[5];
+            }
+            else if (col_counter == 6){
+              rom_output = EATEN_ROW[6];
+            }
+            else{
+              rom_output = EATEN_ROW[7];
+            }
+            game_fsm.d = game_fsm.UPDATE_ROW_4_EATEN;
+          }
+          // ROW 4
+          else if (row_counter == 4){
+            alufn = b011110;
+            we_regfile = 1;
+            bsel = b11;
+            regfile_read_address_a = b0100;
+            regfile_write_address = b0100;
+            if (col_counter == 0){
+              rom_output = EATEN_ROW[0];
+            }
+            else if (col_counter == 1){
+              rom_output = EATEN_ROW[1];
+            }
+            else if (col_counter == 2){
+              rom_output = EATEN_ROW[2];
+            }
+            else if (col_counter == 3){
+              rom_output = EATEN_ROW[3];
+            }
+            else if (col_counter == 4){
+              rom_output = EATEN_ROW[4];
+            }
+            else if (col_counter == 5){
+              rom_output = EATEN_ROW[5];
+            }
+            else if (col_counter == 6){
+              rom_output = EATEN_ROW[6];
+            }
+            else{
+              rom_output = EATEN_ROW[7];
+              
+            }
+            game_fsm.d = game_fsm.UPDATE_ROW_5_EATEN;
+          }
+          // ROW 5
+          else if (row_counter == 5){
+            alufn = b011110;
+            we_regfile = 1;
+            bsel = b11;
+            regfile_read_address_a = b0101;
+            regfile_write_address = b0101;
+            if (col_counter == 0){
+              rom_output = EATEN_ROW[0];
+            }
+            else if (col_counter == 1){
+              rom_output = EATEN_ROW[1];
+            }
+            else if (col_counter == 2){
+              rom_output = EATEN_ROW[2];
+            }
+            else if (col_counter == 3){
+              rom_output = EATEN_ROW[3];
+            }
+            else if (col_counter == 4){
+              rom_output = EATEN_ROW[4];
+            }
+            else if (col_counter == 5){
+              rom_output = EATEN_ROW[5];
+            }
+            else if (col_counter == 6){
+              rom_output = EATEN_ROW[6];
+            }
+            else{
+              rom_output = EATEN_ROW[7];
+            }
+            game_fsm.d = game_fsm.UPDATE_ROW_6_EATEN;
+          }
+          // ROW 6
+          else if (row_counter == 6){
+            alufn = b011110;
+            we_regfile = 1;
+            bsel = b11;
+            regfile_read_address_a = b0110;
+            regfile_write_address = b0110;
+            if (col_counter == 0){
+              rom_output = EATEN_ROW[0];
+            }
+            else if (col_counter == 1){
+              rom_output = EATEN_ROW[1];
+            }
+            else if (col_counter == 2){
+              rom_output = EATEN_ROW[2];
+            }
+            else if (col_counter == 3){
+              rom_output = EATEN_ROW[3];
+            }
+            else if (col_counter == 4){
+              rom_output = EATEN_ROW[4];
+            }
+            else if (col_counter == 5){
+              rom_output = EATEN_ROW[5];
+            }
+            else if (col_counter == 6){
+              rom_output = EATEN_ROW[6];
+            }
+            else{
+              rom_output = EATEN_ROW[7];
+            }
+            game_fsm.d = game_fsm.UPDATE_ROW_7_EATEN;
+          }
+          // ROW 7
+          else{
+            alufn = b011110;
+            we_regfile = 1;
+            bsel = b11;
+            regfile_read_address_a = b0111;
+            regfile_write_address = b0111;
+            if (col_counter == 0){
+              rom_output = EATEN_ROW[0];
+            }
+            else if (col_counter == 1){
+              rom_output = EATEN_ROW[1];
+            }
+            else if (col_counter == 2){
+              rom_output = EATEN_ROW[2];
+            }
+            else if (col_counter == 3){
+              rom_output = EATEN_ROW[3];
+            }
+            else if (col_counter == 4){
+              rom_output = EATEN_ROW[4];
+            }
+            else if (col_counter == 5){
+              rom_output = EATEN_ROW[5];
+            }
+            else if (col_counter == 6){
+              rom_output = EATEN_ROW[6];
+            }
+            else{
+              rom_output = EATEN_ROW[7];
+            }
+            game_fsm.d = game_fsm.CHECK_POISON_ROW_0;
+          }
+        
+        game_fsm.UPDATE_ROW_1_EATEN_FOR_COL0:
+          alufn = b011110;
+          we_regfile = 1;
+          regfile_read_address_a = b0000;
+          regfile_read_address_b = b0001;
+          regfile_write_address = b0001;
+          game_fsm.d = game_fsm.UPDATE_ROW_2_EATEN;
+        
+        game_fsm.UPDATE_ROW_1_EATEN:
+          alufn = b000001;    // SUB away posion block so that subsequent rows won't write poison block
+          we_regfile = 1;
+          bsel = b10;
+          regfile_read_address_a = b0000;
+          regfile_write_address = b1001;     // write to new_output, temporary store
+          game_fsm.d = game_fsm.UPDATE_ROW_1_EATEN_UPDATE;
+          
+        game_fsm.UPDATE_ROW_1_EATEN_UPDATE:
+          alufn = b011110;
+          we_regfile = 1;
+          regfile_read_address_a = b1001;
+          regfile_read_address_b = b0001;
+          regfile_write_address = b0001;
+          game_fsm.d = game_fsm.UPDATE_ROW_2_EATEN;
+        
+        game_fsm.UPDATE_ROW_2_EATEN:
+          alufn = b011110;
+          we_regfile = 1;
+          regfile_read_address_a = b0001;
+          regfile_read_address_b = b0010;
+          regfile_write_address = b0010;
+          game_fsm.d = game_fsm.UPDATE_ROW_3_EATEN;
+        
+        game_fsm.UPDATE_ROW_3_EATEN:
+          alufn = b011110;
+          we_regfile = 1;
+          regfile_read_address_a = b0010;
+          regfile_read_address_b = b0011;
+          regfile_write_address = b0011;
+          game_fsm.d = game_fsm.UPDATE_ROW_4_EATEN;
+        
+        game_fsm.UPDATE_ROW_4_EATEN:
+          alufn = b011110;
+          we_regfile = 1;
+          regfile_read_address_a = b0011;
+          regfile_read_address_b = b0100;
+          regfile_write_address = b0100;
+          game_fsm.d = game_fsm.UPDATE_ROW_5_EATEN;
+        
+        game_fsm.UPDATE_ROW_5_EATEN:
+          alufn = b011110;
+          we_regfile = 1;
+          regfile_read_address_a = b0100;
+          regfile_read_address_b = b0101;
+          regfile_write_address = b0101;
+          game_fsm.d = game_fsm.UPDATE_ROW_6_EATEN;
+        
+        game_fsm.UPDATE_ROW_6_EATEN:
+          alufn = b011110;
+          we_regfile = 1;
+          regfile_read_address_a = b0101;
+          regfile_read_address_b = b0110;
+          regfile_write_address = b0110;
+          game_fsm.d = game_fsm.UPDATE_ROW_7_EATEN;
+        
+        game_fsm.UPDATE_ROW_7_EATEN:
+          alufn = b011110;
+          we_regfile = 1;
+          regfile_read_address_a = b0110;
+          regfile_read_address_b = b0111;
+          regfile_write_address = b0111;
+          game_fsm.d = game_fsm.CHECK_POISON_ROW_0;
+        
+        game_fsm.CHECK_POISON_ROW_0:
+          alufn = 000001;                   //SUB
+          regfile_read_address_b = b0000;
+          asel =  b10;
+          if (outputcheck == 0) {
+            game_fsm.d = game_fsm.CHECK_POISON_ROW_1;
+          }
+          else{
+            game_fsm.d = game_fsm.CHANGE_PLAYER_TURN;
+          }
+        
+        game_fsm.CHECK_POISON_ROW_1:
+          alufn = 000001;
+          regfile_read_address_b = b0001;
+          asel = b10;
+          if (outputcheck == 0){
+            if ((row_counter == 0 && col_counter == 1) || (col_counter == 0 && row_counter == 1)) {
+              if (player_turn == 0) {
+                game_fsm.d = game_fsm.P1WINS;
+              }
+              else {
+                game_fsm.d = game_fsm.P2WINS;
+              }
+            }
+            else {
+              if (player_turn == 0) {
+                game_fsm.d = game_fsm.P2WINS;
+              }
+              else {
+                game_fsm.d = game_fsm.P1WINS;
+              }
+            }
+          }
+          else{
+            game_fsm.d = game_fsm.CHANGE_PLAYER_TURN;
+          }
+        
+        game_fsm.CHANGE_PLAYER_TURN:
+          if (player_turn == 1) {
+            alufn = 011010;          //'A'
+            asel = b01;              // 0
+            we_regfile = 1;
+            regfile_write_address = b1010;
+          }
+          else {
+            alufn = b000000;          //ADD 1
+            asel = b01;
+            bsel = b01;               // 1
+            we_regfile = 1;
+            regfile_write_address = b1010;
+          }
+          game_fsm.d = game_fsm.INITIALIZE_FOR_PLAYER;
+        
+        game_fsm.INITIALIZE_FOR_PLAYER:
+          alufn = b011010;
+          asel = b11;
+          we_regfile = 1;
+          regfile_write_address = b1111;
+          game_fsm.d = game_fsm.RESET_ROW_COUNTER;
+        
+        game_fsm.RESET_ROW_COUNTER:
+          alufn = b011010;
+          asel = b01;
+          we_regfile = 1;
+          regfile_write_address = b1011;
+          game_fsm.d = game_fsm.RESET_COL_COUNTER;
+        
+        game_fsm.RESET_COL_COUNTER:
+          alufn = b011010;
+          asel = b01;
+          we_regfile = 1;
+          regfile_write_address = b1100;
+          if (player_turn == 0) {
+            game_fsm.d = game_fsm.PLAYER2;
+          }
+          else {
+            game_fsm.d = game_fsm.PLAYER1;
+          }
+        
+        game_fsm.P1WINS:
+          win_signal_P1 = b11111111;
+          game_fsm.d = game_fsm.P1WINS;
+        
+        game_fsm.P2WINS:
+          win_signal_P2 = b11111111;
+          game_fsm.d = game_fsm.P2WINS;
+      }
+    }
+}

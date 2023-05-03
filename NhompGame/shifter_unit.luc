@@ -1,0 +1,18 @@
+module shifter_unit (
+    input a[8],
+    input b[4],
+    input alufn_signal[6],
+    output out[8]
+  ) {
+  
+  always {
+    case (alufn_signal[3:0]){
+      default: out = a;
+      b0000: out = a << b;
+      b0001: out = a >> b;
+      b0011: out = $signed(a) >>> b;
+      b1110: out = (a << b) | (a >> (16 - b));
+      b0111: out = (a >> b) | (a << (16 - b));
+    }
+  }
+}

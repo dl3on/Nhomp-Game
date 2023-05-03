@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="ChomperNomGame" board="Alchitry Au" language="Lucid" version="3">
+  <files>
+    <src>adder_unit.luc</src>
+    <src>shifter_unit.luc</src>
+    <component>pipeline.luc</component>
+    <src>game_regfile.luc</src>
+    <src>select_led.luc</src>
+    <src>compare_unit.luc</src>
+    <src>game_CU.luc</src>
+    <src>alu_unit.luc</src>
+    <src>boolean_unit.luc</src>
+    <src>game_betaCPU.luc</src>
+    <src>ws2812b_writer.luc</src>
+    <component>reset_conditioner.luc</component>
+    <src top="true">au_top.luc</src>
+    <src>buttons_select.luc</src>
+    <component>edge_detector.luc</component>
+    <component>button_conditioner.luc</component>
+    <constraint lib="true">alchitry.acf</constraint>
+    <constraint lib="true">au.xdc</constraint>
+    <constraint>custom.acf</constraint>
+  </files>
+</project>

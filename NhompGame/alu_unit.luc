@@ -1,0 +1,60 @@
+module alu_unit (
+    input a[8],
+    input b[8],
+    input alufn_signal[6],
+    output out[8],
+    output zvn[3]
+  ) {
+  
+  adder_unit adder;
+  boolean_unit boolean;
+  shifter_unit shifter;
+  compare_unit compare;
+  
+  sig z;
+  sig v;
+  sig n;
+  
+  
+  always {
+    
+    adder.alufn_signal = alufn_signal;
+    adder.a = a;
+    adder.b = b;
+    
+    z = adder.z;
+    v = adder.v;
+    n = adder.n;
+    
+    zvn[0] = z;
+    zvn[1] = v;
+    zvn[2] = n;
+    
+    compare.alufn_signal = alufn_signal;
+    compare.z = z;
+    compare.v = v;
+    compare.n = n;
+    
+    boolean.alufn_signal = alufn_signal;
+    boolean.a = a;
+    boolean.b = b;
+    
+    shifter.alufn_signal = alufn_signal;
+    shifter.a = a[7:0];
+    shifter.b = b[3:0];
+    
+    case(alufn_signal[5:4]){
+      b00 : out = adder.out;
+      b01 : out = boolean.out;
+      b10 : out = shifter.out;
+      b11 : out = compare.out;
+      default: out = 16h0000;
+    }
+    
+    if (alufn_signal == b000010){
+      out = a*b; // fast multiplier hack
+    }
+    
+    
+  }
+}

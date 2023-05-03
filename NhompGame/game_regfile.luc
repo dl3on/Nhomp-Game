@@ -1,0 +1,108 @@
+//the regfile for all game information
+module game_regfile (
+    input clk,  // clock
+    input rst,  // reset
+    input write_address[4], // write address
+    input we, // write enable
+    input data[8], // data in
+    input read_address_a[4], //address port a 
+    input read_address_b[4], //address port b
+    output out_a[8], //read port a
+    output out_b[8], //read port b
+    output out_data[64],
+    output playerturn,
+    output row_count[3],
+    output col_count[3]
+  ) {
+
+  sig eaten_matrix[64];
+  dff player_turn[1](#INIT(0),.clk(clk), .rst(rst));
+  dff row_ctr[3](#INIT(0),.clk(clk), .rst(rst));
+  dff col_ctr[3](#INIT(0),.clk(clk), .rst(rst));
+  dff row0_output[8](#INIT(b00000001),.clk(clk), .rst(rst));
+  dff row1_output[8](#INIT(0),.clk(clk), .rst(rst));
+  dff row2_output[8](#INIT(0),.clk(clk), .rst(rst));
+  dff row3_output[8](#INIT(0),.clk(clk), .rst(rst));
+  dff row4_output[8](#INIT(0),.clk(clk), .rst(rst));
+  dff row5_output[8](#INIT(0),.clk(clk), .rst(rst));
+  dff row6_output[8](#INIT(0),.clk(clk), .rst(rst));
+  dff row7_output[8](#INIT(0),.clk(clk), .rst(rst));
+  dff selected_block_row[8](#INIT(b00000001),.clk(clk), .rst(rst));
+  dff temp_selected_block_row[8](#INIT(0),.clk(clk), .rst(rst));
+  dff temp_reg[8](#INIT(0),.clk(clk), .rst(rst));        //stores old row data temporarily
+  dff new_output[8](#INIT(0),.clk(clk), .rst(rst));      //store here after OR
+
+  always {
+  
+    eaten_matrix = c{(row7_output.q), (row6_output.q), (row5_output.q),
+                             (row4_output.q), (row3_output.q), (row2_output.q),
+                             (row1_output.q), (row0_output.q)};
+    out_data = eaten_matrix;
+    playerturn = player_turn.q;
+    row_count = row_ctr.q;
+    col_count = col_ctr.q;
+    
+    //write port
+    if (we){
+      
+      case(write_address){
+        b0000 : row0_output.d = data;
+        b0001 : row1_output.d = data;
+        b0010 : row2_output.d = data;
+        b0011 : row3_output.d = data;
+        b0100 : row4_output.d = data;
+        b0101 : row5_output.d = data;
+        b0110 : row6_output.d = data;
+        b0111 : row7_output.d = data;
+        b1000 : temp_reg.d = data;
+        b1001 : new_output.d = data;
+        b1010 : player_turn.d = data[0];
+        b1011 : row_ctr.d = data[2:0];
+        b1100 : col_ctr.d = data[2:0];
+        b1110 : temp_selected_block_row.d = data;
+        b1111 : selected_block_row.d = data;
+      }
+    }
+    
+      
+    //read port a
+    case(read_address_a){
+        b0000 : out_a = row0_output.q;
+        b0001 : out_a = row1_output.q;
+        b0010 : out_a = row2_output.q;
+        b0011 : out_a = row3_output.q;
+        b0100 : out_a = row4_output.q;
+        b0101 : out_a = row5_output.q;
+        b0110 : out_a = row6_output.q;
+        b0111 : out_a = row7_output.q;
+        b1000 : out_a = temp_reg.q;
+        b1001 : out_a = new_output.q;
+        b1010 : out_a = player_turn.q;
+        b1011 : out_a = row_ctr.q;
+        b1100 : out_a = col_ctr.q;
+        b1110 : out_a = temp_selected_block_row.q;
+        b1111 : out_a = selected_block_row.q;
+        default : out_a = 0;
+    }
+    
+    //read port b
+    case(read_address_b){
+        b0000 : out_b = row0_output.q;
+        b0001 : out_b = row1_output.q;
+        b0010 : out_b = row2_output.q;
+        b0011 : out_b = row3_output.q;
+        b0100 : out_b = row4_output.q;
+        b0101 : out_b = row5_output.q;
+        b0110 : out_b = row6_output.q;
+        b0111 : out_b = row7_output.q;
+        b1000 : out_b = temp_reg.q;
+        b1001 : out_b = new_output.q;
+        b1010 : out_b = player_turn.q;
+        b1011 : out_b = row_ctr.q;
+        b1100 : out_b = col_ctr.q;
+        b1110 : out_b = temp_selected_block_row.q;
+        b1111 : out_b = selected_block_row.q;
+        default : out_b = 0;
+    }
+  }
+}
