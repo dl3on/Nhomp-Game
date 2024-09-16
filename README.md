@@ -12,6 +12,4 @@ In the ws2812b_writer module, it contains the code to drive the LED Matrix (Type
 
 In the alu_unit module, it contains the code that simulates the arithmetic logic unit (ALU) whose task is to perform logic calculations (whose codes are contained in adder, boolean, compare, and shifter unit).
 
-# Video showcase link: https://clipchamp.com/watch/sh5fMjuXx5s
-
 ![image](https://github.com/dl3on/Nhomp-Game/assets/124175480/32b66379-5cb4-441c-823f-d574a0385380)
